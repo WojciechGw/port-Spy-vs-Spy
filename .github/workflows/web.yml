@@ -1,22 +1,26 @@
-name: Web
+name: Build
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      source:
-        description: Branch, tag or commit to build
-      emulator:
-        description: Web player version, such as 0.40
 
 jobs:
-  web:
-    uses: picocomputer/.github/.github/workflows/web.yml@main
-    with:
-      source: ${{ inputs.source }}
-      emulator: ${{ inputs.emulator }}
+  build:
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
-      pages: write
-      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y cc65 ninja-build
+      - run: python -m pip install -r requirements-build.txt
+      - run: cmake --preset cc65/Release
+      - run: cmake --build --preset cc65/Release
+      - run: ctest --test-dir build/cc65/release --output-on-failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spy-vs-spy-rp6502
+          path: build/cc65/release/spy-vs-spy.rp6502

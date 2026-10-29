@@ -2,18 +2,30 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "RP6502: update tools",
+            "label": "Spy: build",
             "type": "process",
             "command": "cmake",
             "args": [
-                "-P",
-                "${workspaceFolder}/tools/rp6502.cmake"
+                "--build",
+                "--preset",
+                "cc65/Release"
             ],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
+            "group": {
+                "kind": "build",
+                "isDefault": true
             },
             "problemMatcher": []
         },
+        {
+            "label": "Spy: test",
+            "type": "process",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "${workspaceFolder}/build/cc65/release",
+                "--output-on-failure"
+            ],
+            "problemMatcher": []
+        }
     ]
 }

@@ -2,25 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "RP6502-EMU",
+            "name": "Spy vs Spy - emulator",
             "type": "lldb-dap",
             "request": "launch",
-            "debugAdapterExecutable": "${command:cmake.launchTargetDirectory}/rp6502-emu",
+            "debugAdapterExecutable": "${workspaceFolder}/tools/rp6502-emu",
             "debugAdapterArgs": [
                 "--dap",
-                "--ini",
-                "${workspaceFolder}/.rp6502"
+                "--phi2",
+                "8000"
             ],
             "windows": {
-                "debugAdapterExecutable": "${command:cmake.launchTargetDirectory}/rp6502-emu.exe"
+                "debugAdapterExecutable": "${workspaceFolder}/tools/rp6502-emu.exe"
             },
-            "program": "${command:cmake.launchTargetPath}.rp6502",
-            "args": [],
+            "program": "${workspaceFolder}/build/cc65/release/spy-vs-spy.rp6502",
             "stopOnEntry": false,
-            "stopOnExit": true
+            "stopOnExit": true,
+            "preLaunchTask": "Spy: build"
         },
         {
-            "name": "RP6502-PICO",
+            "name": "Spy vs Spy - Pico",
             "type": "debugpy",
             "request": "launch",
             "console": "integratedTerminal",
@@ -29,31 +29,9 @@
                 "run",
                 "-c",
                 "${workspaceFolder}/.rp6502",
-                "${command:cmake.launchTargetPath}.rp6502"
+                "${workspaceFolder}/build/cc65/release/spy-vs-spy.rp6502"
             ],
-        },
-        {
-            "name": "RP6502-WEB",
-            "type": "debugpy",
-            "request": "launch",
-            "console": "internalConsole",
-            "module": "http.server",
-            "args": [
-                "--bind",
-                "127.0.0.1",
-                "--directory",
-                "${command:cmake.buildDirectory}/web",
-                "0"
-            ],
-            "env": {
-                "PYTHONUNBUFFERED": "1"
-            },
-            "preLaunchTask": "CMake: build",
-            "serverReadyAction": {
-                "pattern": "\\((https?://\\S+)\\)",
-                "uriFormat": "%s",
-                "action": "openExternally"
-            },
-        },
+            "preLaunchTask": "Spy: build"
+        }
     ]
 }
