@@ -1,0 +1,160 @@
+{
+  "release": "R12",
+  "reference_record_date": "2026-10-29",
+  "date_timezone": "Europe/Warsaw",
+  "rom": {
+    "path": "releases/r12/spy-vs-spy-r12.rp6502",
+    "size_bytes": 100396,
+    "sha256": "7a991407346ef81cfc4edfc5dfea215fbe9128ea2b5411fb87435c83ac98faa4"
+  },
+  "preservation": "Copied byte for byte from the accepted R12 build; CMake does not write to this directory. Keep this archive unchanged when making future releases.",
+  "runtime": {
+    "cpu_mhz": 8,
+    "music_updates_per_second": 49.6125,
+    "reset_address": "0xE000"
+  },
+  "validation": {
+    "user_confirmation_date": "2026-10-29",
+    "user_report": "R12 works correctly in the emulator and on the physical computer after the R11 splash and menu-freeze reports.",
+    "automated": {
+      "status": "All eight existing tests passed on R12 before archiving; the expanded native-title cases also passed.",
+      "tests": [
+        "xex",
+        "title-pixels",
+        "timing",
+        "graphics",
+        "music-tempo",
+        "native-title",
+        "native-game",
+        "audio"
+      ]
+    },
+    "limits": [
+      "No complete playthrough to victory has been validated.",
+      "Emulator tests do not model physical Pico bus timing."
+    ]
+  },
+  "emulator": {
+    "path": "tools/rp6502-emu.exe",
+    "size_bytes": 2142208,
+    "sha256": "4c901529dc69134be8fac82c8c467feae124ce7773196f3aa27a75aae1991217",
+    "version_output": "Oct 13 2026 13:09:10",
+    "scope": "Local executable used for automated validation; not bundled in this reference archive. User reported direct EXE launch, not VS Code F5."
+  },
+  "physical_firmware": {
+    "reported_branch": "mtRAM+PCM",
+    "reported_release": "Version 0.42",
+    "release_url": "https://github.com/picocomputer/rp6502/releases/tag/v0.42",
+    "reported_build_reference": "Build made after commit ad6293c",
+    "reference_commit": "ad6293c",
+    "build_relation_to_reference_commit": "after",
+    "ria_build_id": null,
+    "vga_build_id": null,
+    "source": "User supplied Version 0.42 and the build reference after confirming R12 on hardware; mtRAM+PCM was reported earlier in the testing conversation.",
+    "exact_build_status": "Release and build reference recorded as reported. The exact flashed source revision and separate RIA/VGA binary checksums were not supplied; identity with the v0.42 release assets is not asserted."
+  },
+  "build_input_fingerprints": [
+    {
+      "path": "CMakeLists.txt",
+      "size_bytes": 4181,
+      "sha256": "71ef65e6cb9a08a5a5c5b3ed08dc20a71c3ccd8c2723905a4cf40794c442dc34"
+    },
+    {
+      "path": "CMakePresets.json",
+      "size_bytes": 1098,
+      "sha256": "7a5d1620117adfdde3f1a8ddcf72b48800aefb948360b126933d003a9811ad49"
+    },
+    {
+      "path": "requirements-build.txt",
+      "size_bytes": 12,
+      "sha256": "f4ab4db9e465df8f129d7deb9fc028fc1b15cdf886fe8b0ab53fc906e1e9d9c8"
+    },
+    {
+      "path": "src/spy.asm",
+      "size_bytes": 19964,
+      "sha256": "fb64da9c0f46d51ec65aad61f5e518075806d05a70b5a7a344a6f43674b3c666"
+    },
+    {
+      "path": "src/spy.cfg",
+      "size_bytes": 353,
+      "sha256": "c38a435ab9a0d9b0995cb36ae5611f9706da1cbf965d58b12d774246c0f96b9c"
+    },
+    {
+      "path": "src/ria.inc",
+      "size_bytes": 663,
+      "sha256": "421edbc461926c1b0b1b289c5dc4fc8b4e175fd2228763489ea61e7475eff549"
+    },
+    {
+      "path": "tools/prepare_spy.py",
+      "size_bytes": 7466,
+      "sha256": "46f62eb969bd63d1fa37936d4fabb981ce9f2948b2a7b32eaa73f319e79dd1dd"
+    },
+    {
+      "path": "tools/prepare_title.py",
+      "size_bytes": 4272,
+      "sha256": "2c12955f6d181e296a65da6821cfe912a934a28348fc47c05fa43d6ec0d642d7"
+    },
+    {
+      "path": "tools/ensure_build_deps.py",
+      "size_bytes": 2441,
+      "sha256": "d19bea59dcb232f2e1287a44668797a45d616038d960546b36199d4b30e7be10"
+    },
+    {
+      "path": "tools/rp6502.py",
+      "size_bytes": 81751,
+      "sha256": "7cf970ed18e35471a0b89e4c0e9050ff0881bf5729343dd0057da1d726576cb9"
+    },
+    {
+      "path": "xex/SpyVsSpy.xex",
+      "size_bytes": 29572,
+      "sha256": "3796ab51067e55489d42b7be27c1a9d83a7ed19e9be7cbed8889474747110b5c"
+    },
+    {
+      "path": "xex/Spy Vs Spy (v2).xex",
+      "size_bytes": 51221,
+      "sha256": "e9ebfa0037c87b573390c1c64b624b6e6265a550c4da80306c43942e5d97d4b0"
+    }
+  ],
+  "test_source_fingerprints": [
+    {
+      "path": "tests/test_audio.py",
+      "size_bytes": 5235,
+      "sha256": "124c97f763fe8fefce776e759f589d9c30d643ad4b7639e6bf77da62dcc0d289"
+    },
+    {
+      "path": "tests/test_graphics.py",
+      "size_bytes": 4889,
+      "sha256": "ac921ee2e8a63f8c09c8f2c0d4679714d3c9baf1f10b4976f4c947b167eeab41"
+    },
+    {
+      "path": "tests/test_music_tempo.py",
+      "size_bytes": 2339,
+      "sha256": "380f76eb8320482f66f0b0054a2d13366883085551e52df013febd3fbc1300e5"
+    },
+    {
+      "path": "tests/test_native.py",
+      "size_bytes": 2830,
+      "sha256": "d0488b545f626b2e5c55c6fc284a49b51cc7c3ca03c0b073dec5ddbccdf88df1"
+    },
+    {
+      "path": "tests/test_prepare.py",
+      "size_bytes": 2886,
+      "sha256": "0414591b4a012cd674b8186bb5382e9b5a84c8d139832ca9e97d3d4d8e86b9b3"
+    },
+    {
+      "path": "tests/test_timing.py",
+      "size_bytes": 2562,
+      "sha256": "c1d47e5c44aaefc908d3b1481d90714395d791392d261df637ca06714c2c752a"
+    },
+    {
+      "path": "tests/test_title.py",
+      "size_bytes": 1840,
+      "sha256": "092ede6144418d5731f20adbe437d69b5e6d14f2cc05cffbd16ba7e449c6c3ff"
+    },
+    {
+      "path": "tests/test_title_native.py",
+      "size_bytes": 2228,
+      "sha256": "ff055f5185809e00bb76cfec6ffbef483bb02feaccadfaec325327ead09ee1ac"
+    }
+  ]
+}

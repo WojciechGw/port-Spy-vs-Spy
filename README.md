@@ -1,143 +1,215 @@
 # Spy vs Spy — Picocomputer 6502
 
-Natywny port dostarczonego `xex/SpyVsSpy.xex` (Atari XL/XE, HOMESOFT).
-Gotowy program: **`build/cc65/release/spy-vs-spy.rp6502`**.
-Kopia z numerem wersji: **`build/cc65/release/spy-vs-spy-r12.rp6502`**.
-Na dole menu tej wersji widnieje `SPY R12 MUSIC 49.6125 HZ`.
+A native port of the supplied `xex/SpyVsSpy.xex` (Atari XL/XE, HOMESOFT).
+The original game code runs directly on the 6502 CPU. The host layer provides
+VGA graphics, keyboard input, two gamepads, and PSG audio.
 
-R11 dodaje oryginalny ekran startowy z `xex/Spy Vs Spy (v2).xex`,
-łącznie ze zmianami palety w trzech procedurach DLI. Ekran jest widoczny
-przez 8 sekund; Spacja, Enter, fire lub Start na padzie pomija oczekiwanie.
-Przycisk trzeba puścić przed przejściem do menu, aby nie uruchomić od razu gry.
-Kod rozgrywki pochodzi nadal z `SpyVsSpy.xex`, a tempo muzyki zachowuje
-zaakceptowane na sprzęcie ustawienie R10: 49,6125 Hz.
+**R12 is the reference release.** The user confirmed correct operation in the
+emulator and on a physical Picocomputer on October 29, 2026, including the
+splash screen and the transition to the working game with music.
 
-R12 oddziela start splasha od inicjalizacji gry. Po splashu wyłącza mapowanie
-klawiatury i padów, a następnie wykonuje pełny start R10, zerując również
-emulowane rejestry Atari. Kod obsługi gry i jego adresy są identyczne z R10;
-tablice różnią się jedynie numerem wersji w stopce. Splash zajmuje osobny
-obszar $E000–$E3FB i uruchamia się z wektora resetu $E000.
-Pominięcie ekranu wymaga nowego naciśnięcia po zwolnieniu przycisków,
-więc klawisz trzymany podczas uruchamiania nie zamyka go od razu.
-Konfiguracja F5 w VS Code jawnie ustawia zegar emulatora na 8 MHz.
+## Reference release
 
-Oryginalny kod rozgrywki wykonuje się bezpośrednio na procesorze 6502.
-Nowa warstwa obsługuje grafikę VGA, klawiaturę, dwa pady i dźwięk PSG.
+- Preserved ROM: [spy-vs-spy-r12.rp6502](releases/r12/spy-vs-spy-r12.rp6502).
+- Checksum file: [SHA256SUMS](releases/r12/SHA256SUMS).
+- Release and environment record: [manifest.json](releases/r12/manifest.json).
+- ROM size: **100,396 bytes**.
+- ROM SHA-256: `7a991407346ef81cfc4edfc5dfea215fbe9128ea2b5411fb87435c83ac98faa4`.
 
-## Stan wersji
+The copy in `releases/r12/` is outside the build directory and is not overwritten
+by CMake. Preserve it for comparisons with future versions. A fresh build writes
+`build/cc65/release/spy-vs-spy.rp6502` and
+`build/cc65/release/spy-vs-spy-r12.rp6502`; these are build outputs, not the archive.
+The menu footer identifies this release as `SPY R12 MUSIC 49.6125 HZ`.
 
-Wersja testowa. W RP6502-EMU przy 8 MHz sprawdzono menu, wybór dwóch graczy,
-rozpoczęcie gry, ruch obu szpiegów, przyciski akcji, pad, powrót do menu
-oraz dłuższe działanie bez uszkadzania kodu. Test sprawdza także 60 wywołań
-VBI na sekundę w menu. Oryginalne znaki 4×8 w czterech kolorach trafiają
-do XRAM bez konwersji. VGA wyświetla je jako małe sprite'y, podwajając
-szerokość do 8 pikseli. Obrazy znaków zajmują $0000–$21FF, a ich stałe
-deskryptory $4000–$6A2F. W każdej obsłudze VSYNC przesyłane jest całe
-górne lub dolne pole oraz wiersz statusu. Oba pola są odświeżane w dwóch
-przerwaniach, około 33 ms przy 60 Hz, bez cache ani kolejki zmian.
-
-Test z oddzielnymi kopiami pamięci RIA/VGA sprawdza pozycje, palety i format
-znaków, pełne przerysowanie i odzyskanie obrazu po utracie serii zapisów PIX.
-W tych przypadkach limit wynosi dwa przerwania. Dodatkowe zgłoszenie IRQ
-w tej samej klatce VGA nie wykonuje ponownie VBI ani aktualizacji muzyki.
-Użytkownik potwierdził poprawne działanie R10 na Pico. W R11 zgłosił zawieszanie
-menu na sprzęcie oraz szybkie pomijanie splasha w emulatorze. Zmiany startu
-w R12 sprawdzono testami; usunięcie zawieszania wymaga potwierdzenia na Pico.
-
-Nie przeprowadzono pełnej rozgrywki do zwycięstwa.
-Kolory są przybliżeniem palety Atari. Oryginalne procedury muzyki i efektów
-korzystają z przybliżonej syntezy POKEY przez PSG; nie odtwarza ona dokładnie
-wielomianów szumu ani wszystkich trybów łączenia kanałów.
-
-## Uruchomienie
-
-W emulatorze:
+Verify the archived ROM from the repository root:
 
 ```powershell
-.\tools\rp6502-emu.exe build/cc65/release/spy-vs-spy.rp6502 --phi2 8000
+Get-FileHash releases/r12/spy-vs-spy-r12.rp6502 -Algorithm SHA256
 ```
 
-Emulator nie jest częścią kodu źródłowego. W tym środowisku jego lokalna kopia
-znajduje się w `tools/`. Na nowym komputerze potrzebny jest
-[RP6502-EMU](https://picocomputer.github.io/emu.html) obsługujący własne
-rozmiary sprite'ów VGA (mode 5 custom).
+On systems with `sha256sum`, run `sha256sum -c SHA256SUMS` inside `releases/r12/`.
 
-Na Picocomputerze można wgrać ROM narzędziem SDK:
-
-```powershell
-python tools/rp6502.py run build/cc65/release/spy-vs-spy.rp6502
-```
-
-Opcje połączenia szeregowego opisuje `python tools/rp6502.py run --help`.
-Port jest przygotowany do pracy przy 8 MHz.
-
-Tempo gry jest ograniczone w kodzie: główna pętla wykonuje maksymalnie
-60 obiegów na sekundę, czyli do 30 aktualizacji na każdego z dwóch
-obsługiwanych naprzemiennie graczy. Oczekiwanie korzysta z zegara VGA,
-nie z liczby cykli CPU; po opóźnieniu nie ma serii przyspieszonych aktualizacji.
-Opóźnienia menu i dłuższych sekwencji również korzystają z tego zegara,
-z czasami obliczonymi dla 1,773447 MHz i zaokrąglonymi do klatek.
-Jest to regulacja tempa portu, a nie dokładna emulacja czasowa Atari.
-Pozostaw 8 MHz — przy 2 MHz obsługa grafiki może nie nadążać.
-
-## Sterowanie
-
-| Funkcja | Klawisze |
+| Component | Recorded reference information |
 | --- | --- |
-| Biały szpieg / joystick 1 | Strzałki + Spacja |
-| Czarny szpieg / joystick 2 | WASD + lewy Shift |
-| Start | Spacja lub Enter / F2 |
-| Powrót do menu (Atari OPTION) | F4 |
-| Pauza podczas gry | Esc |
-| Włączanie/wyłączanie muzyki | M |
+| CPU speed | 8 MHz |
+| Local RP6502-EMU executable | `--version`: `Oct 13 2026 13:09:10` |
+| Local emulator SHA-256 | `4c901529dc69134be8fac82c8c467feae124ce7773196f3aa27a75aae1991217` |
+| Physical RIA/VGA firmware | User-reported [Version 0.42](https://github.com/picocomputer/rp6502/releases/tag/v0.42), build made after commit `ad6293c`; previously reported branch: `mtRAM+PCM` |
+| Automated validation | All eight existing tests passed for R12 before archiving |
 
-W menu góra/dół wybiera pozycję, lewo/prawo zmienia wartość, a fire
-uruchamia grę. Dostępne są dwa pady: krzyżak lub lewy drążek porusza
-szpiegiem, A/B wykonuje akcję, Start odpowiada START, a Home — OPTION.
-W trybie jednoosobowym należy uwzględnić wybraną w menu stronę komputera
-(`COMPUTER IS PLAYER`).
+The emulator fingerprint identifies the local executable used for automated
+validation. The user also confirmed operation when launching the emulator
+directly. The firmware release and build reference were supplied by the user
+for the physical computer on which R12 was confirmed working. The description
+"build made after commit `ad6293c`" is retained as reported; it does not assert
+that the flashed binaries are identical to the v0.42 release assets or identify
+their exact source revision. Separate RIA/VGA binary checksums were not recorded.
 
-## Muzyka i efekty
+## Running
 
-Port zachowuje oryginalną melodię, sekwencje 19 efektów i ich obwiednie
-głośności. Cztery kanały PSG obsługują dwa głosy muzyki i efekty obu szpiegów.
-Rejestry dźwięku są odczytywane bezpośrednio po VBI, przed procedurami
-rastrowymi — pierwszy głos muzyki nie jest już przypadkowo wyciszany co
-drugą klatkę. Dla podtrzymywanych nut wykorzystywany jest również stan
-sekwencera, ponieważ nie zapisuje on rejestrów POKEY w każdej klatce.
-Tryby POKEY `$Ax` i `$Ex` dają czysty ton.
+Run the preserved release in the emulator:
 
-Sekwencer muzyki pracuje z tempem 49,6125 aktualizacji na sekundę, o 5% wyższym
-od 47,25 Hz w R09. Jest to korekta tempa po odsłuchu na sprzęcie.
-Przekierowanie oryginalnego wywołania pod $7550 wykonuje 1323 aktualizacje
-na 1600 taktów VGA, bez zmiany wysokości dźwięków, tempa rozgrywki ani efektów.
+```powershell
+.\tools\rp6502-emu.exe releases/r12/spy-vs-spy-r12.rp6502 --phi2 8000
+```
 
-Wysokość tonów jest obliczana dla zegara PAL 1,773447 MHz. Przeliczenie
-głośności uwzględnia logarytmiczną skalę PSG i pozostawia zapas dla sumy
-czterech kanałów. Subtelne stereo rozdziela efekty szpiegów i dwa głosy
-melodii, zachowując wszystkie dźwięki w obu głośnikach. Klawisz **M** wycisza
-samą muzykę; efekty pozostają aktywne.
+The emulator executable is not included in the source repository. This workspace
+has a local copy in `tools/`. On another machine, use
+[RP6502-EMU](https://picocomputer.github.io/emu.html) with support for VGA mode 5
+custom sprites. The VS Code F5 configuration explicitly selects 8 MHz and runs
+the current build output.
 
-Tryby szumu nadal korzystają z przybliżenia PSG, więc ich barwa różni się
-od POKEY. Port nie emuluje dokładnie jego generatorów wielomianowych;
-w sprawdzonych sekwencjach gry `AUDCTL=0`.
+Load and run the preserved ROM on a Picocomputer using the SDK tool:
 
-Test audio zapisuje ślady rejestrów w `build/cc65/release/audio/`.
-Można z nich przygotować próbki do odsłuchu:
+```powershell
+python tools/rp6502.py run releases/r12/spy-vs-spy-r12.rp6502
+```
+
+See `python tools/rp6502.py run --help` for serial connection options.
+Use **8 MHz**: graphics updates may not keep up at 2 MHz.
+To run a newly built version instead, substitute
+`build/cc65/release/spy-vs-spy.rp6502` in either command.
+
+## Controls
+
+### Splash screen
+
+The original v2 splash appears for about eight seconds. Press **Space**, **Enter**,
+**F2**, **Left Shift**, or **A/B/Start on either gamepad** to skip it.
+Release any launch key first: R12 requires a fresh press after the controls have
+been released. Release the skip button to enter the menu; holding it cannot
+also start a game. If a button is held when the timeout expires, the transition
+waits for its release.
+
+### Menu and starting a game
+
+1. Use **Up/Down** or the first gamepad's directions to select a menu item.
+2. Use **Left/Right** to change its value, including `NUMBER OF PLAYERS`.
+3. For a single-player game, check `COMPUTER IS PLAYER` and use the controls
+   for the human-controlled spy.
+4. Press **Space / fire**, **Enter**, or **F2** to start. Gamepad **A/B** or
+   **Start** provides the corresponding fire/start input.
+
+### Keyboard
+
+| Action | Key |
+| --- | --- |
+| Move the white spy / joystick 1 | Arrow keys |
+| White spy fire/action | Space |
+| Move the black spy / joystick 2 | W = up, A = left, S = down, D = right |
+| Black spy fire/action | Left Shift |
+| Atari START | Enter or F2 |
+| Atari SELECT input | F3 |
+| Return to the menu (Atari OPTION) | F4 |
+| Pause during gameplay | Esc |
+| Toggle music on/off | M |
+
+Fire/action is the original game's context-dependent joystick button; the port
+does not assign separate keys to individual actions. `M` mutes music only;
+sound effects remain active. F3 forwards Atari SELECT rather than opening
+a new settings screen.
+
+### Gamepads
+
+| Action | Control |
+| --- | --- |
+| White spy / joystick 1 | First gamepad |
+| Black spy / joystick 2 | Second gamepad |
+| Movement | D-pad or left stick |
+| Fire/action | A or B |
+| Atari START | Start |
+| Return to the menu (Atari OPTION) | Home |
+
+Keyboard and gamepad inputs can be used together. Pause and music control
+remain available on the keyboard when using a gamepad. Button labels above
+refer to the logical A/B/Start/Home inputs reported by the firmware or emulator.
+
+## Release status and limitations
+
+R11 introduced the original splash from `xex/Spy Vs Spy (v2).xex`, including
+the palette changes made by its three display-list interrupts (DLIs). Gameplay
+still uses `SpyVsSpy.xex`; it has not been replaced with the different v2 engine.
+
+R12 separates splash startup from game initialization. It unmaps the keyboard
+and gamepads after the splash, then performs the full R10 startup, including
+clearing the emulated Atari registers. The game host code and its addresses
+match R10 byte for byte; its tables differ only in the footer version number.
+The splash startup occupies a separate region at `$E000–$E3FB`, entered through
+the reset vector at `$E000`.
+
+The user reported premature splash dismissal in the emulator and a menu freeze
+with a sustained note on hardware in R11, then confirmed correct operation on
+both platforms with R12. Music retains the hardware-approved R10 tempo:
+**49.6125 sequencer updates per second**.
+
+Automated emulator checks cover boot, menu navigation, two-player selection,
+starting a game, movement of both spies, action buttons, gamepad input, return
+to the menu, and extended execution without overwriting the checked game code.
+They also verify 60 vertical-blank interrupt (VBI) calls per second in the menu.
+
+A complete playthrough to victory has **not** been validated. Colors approximate
+the Atari palette. PSG synthesis approximates POKEY and does not reproduce its
+noise polynomials or all channel-joining modes exactly. Hardware confirmation
+does not replace testing every gameplay situation.
+
+## Graphics and timing
+
+Original four-color 4×8 glyphs are copied to XRAM without conversion. VGA draws
+them as small sprites with their width doubled to eight pixels. Glyph images
+occupy `$0000–$21FF`; fixed descriptors occupy `$4000–$6A2F`.
+Each VSYNC interrupt uploads either the complete upper or lower field, plus
+the status row. Both fields refresh within two interrupts, about 33 ms at
+60 Hz, without a cache or a queue of changed bytes.
+
+The graphics test uses separate RIA and VGA memory copies. It checks positions,
+palettes, glyph format, complete redraws, and recovery within two interrupts
+after a simulated lost burst of PIX writes. It does not model physical Pico
+bus timing. Duplicate IRQ notifications in the same VGA frame do not run the
+original VBI or music update twice.
+
+The foreground loop is limited to 60 iterations per second, or up to 30 updates
+per spy because the original game processes them alternately. Waiting uses the
+VGA clock, not a CPU cycle count, and does not produce catch-up bursts after
+a delay. Menu and longer sequence delays use the same clock, with durations
+calculated for a 1.773447 MHz Atari clock and rounded to frames. This is pacing
+for the port, not cycle-exact Atari emulation.
+
+## Music and sound effects
+
+The port retains the original melody, all 19 sound-effect sequences, and their
+volume envelopes. Four PSG voices handle two music parts and both spies' effects.
+Audio registers are sampled immediately after VBI, before the raster handlers,
+so the first music voice is no longer accidentally muted on alternate frames.
+Held notes also use sequencer state because it does not rewrite the POKEY
+registers on every frame. POKEY `$Ax` and `$Ex` modes produce pure tones.
+
+The music sequencer runs at 49.6125 updates per second, 5% above R09's 47.25 Hz,
+following listening adjustments on hardware. Redirecting the original call at
+`$7550` produces 1323 updates per 1600 VGA ticks, without changing pitch,
+gameplay speed, or effect timing.
+
+Pitch is calculated for the PAL clock of 1.773447 MHz. Volume conversion accounts
+for the PSG's logarithmic scale and leaves mixing headroom for four simultaneous
+voices. Mild stereo placement separates the spies' effects and music parts while
+keeping every voice audible in both speakers. Noise modes remain approximations;
+the checked game sequences use `AUDCTL=0`.
+
+The audio test writes register traces to `build/cc65/release/audio/`.
+Generate listening previews with:
 
 ```powershell
 python tools/preview_audio.py build/cc65/release/audio/menu.json build/cc65/release/audio/menu.wav
 python tools/preview_audio.py build/cc65/release/audio/effects.json build/cc65/release/audio/effects.wav
 ```
 
-WAV-y powstają w programowym modelu PSG, nie są nagraniem fizycznego
-Picocomputera. Obok nich powstają pliki `*.stats.json` z poziomem szczytowym
-i liczbą przesterowanych próbek.
+These WAV files come from a software PSG model, not a recording of a physical
+Picocomputer. Adjacent `*.stats.json` files report peaks and clipped sample counts.
 
-## Budowanie i testy
+## Building and testing
 
-Wymagane: Python 3, CMake 3.28+, Ninja oraz `ca65` i `ld65` z cc65 w PATH.
-Nie jest potrzebny runtime C ani zmodyfikowany kompilator cc65.
+Requirements: Python 3, CMake 3.28+, Ninja, and cc65's `ca65` and `ld65` on PATH.
+No C runtime or modified cc65 compiler is required.
 
 ```powershell
 cmake --preset cc65/Release
@@ -145,75 +217,73 @@ cmake --build --preset cc65/Release
 ctest --test-dir build/cc65/release --output-on-failure
 ```
 
-Pakiet py65 wykonuje oryginalny dekompresor i DLI ekranu startowego podczas budowania
-na komputerze. Nie trafia do programu RP6502. Można go również zainstalować
-w aktywnym środowisku Pythona bez opcji `--target`.
+During the build, py65 executes the original depacker and splash DLIs on the
+development computer. It is not included in the RP6502 program.
 
-Przed każdą kompilacją CMake sprawdza import wymaganych modułów `py65`
-przy użyciu tego samego interpretera, który buduje ROM. Jeśli pakietu brakuje
-lub jego instalacja jest niepełna, instaluje zależności z `requirements-build.txt`
-do `build/python-deps` z opcją `--upgrade`. Ten krok wymaga dostępu do pakietu
-przez pip; po poprawnej instalacji kolejne kompilacje działają bez sieci.
-Dotyczy to także przycisku Build w VS Code. Ręczne przygotowanie zależności:
+Before each build, CMake checks the required py65 imports using the same Python
+interpreter that builds the ROM. If the package is absent or incomplete, it
+installs `requirements-build.txt` into `build/python-deps` with `--upgrade`.
+Installation requires access to the package through pip; subsequent builds
+work offline once the dependencies are available. This also applies to the
+VS Code Build command. To install manually:
 
 ```powershell
 python -m pip install --upgrade --target build/python-deps -r requirements-build.txt
 ```
 
-Na Windows skrypt po instalacji włącza dziedziczenie uprawnień katalogu
-zależności z projektu. Pip może przenieść katalogi z TEMP razem z uprawnieniami
-prywatnymi dla konta instalującego; bez tego kroku inne konto uruchamiające
-VS Code może otrzymać `ModuleNotFoundError` lub `WinError 5`.
+Installing into the active Python environment without `--target` is also
+supported. On Windows, the dependency script enables inherited permissions on
+installed entries. Pip can move directories from TEMP with permissions private
+to the installing account; without inheritance, another account running VS Code
+may encounter `ModuleNotFoundError` or `WinError 5`.
 
-Testy natywnego ekranu startowego, gry i audio są rejestrowane, gdy CMake znajdzie `rp6502-emu` w `tools/`
-lub PATH. Można podać `-DSPY_EMULATOR=/ścieżka/do/rp6502-emu`.
-Test uruchamia rzeczywisty ROM i używa klawiatury/pada bez haków testowych
-ani ustawiania pozycji postaci. Zrzuty po teście: `test-game.png`
-i `test-menu.png` w katalogu kompilacji.
-Test audio dodatkowo zgłasza wszystkie 19 identyfikatorów efektów przez
-oryginalną kolejkę gry i sprawdza rejestry PSG, dwa głosy muzyki,
-równoczesne efekty obu szpiegów oraz wyciszanie i wznawianie klawiszem M.
-Test `title-pixels` porównuje każdy piksel obrazu z danymi XEX i paletami DLI.
-Test `native-title` sprawdza zawartość XRAM, pomijanie ekranu klawiaturą i oboma
-padami, przytrzymany przycisk oraz automatyczne przejście do menu.
-Sprawdza również klawisz Enter i fire pada trzymane już podczas uruchamiania:
-ich zwolnienie nie może zamknąć splasha.
-Zrzut ekranu startowego: `test-title.png`; obraz wyodrębniony z XEX: `title.png`.
-CI buduje ROM i uruchamia testy XEX, obrazu startowego, opóźnień, grafiki i tempa muzyki; testy natywne wymagają
-lokalnego emulatora.
+The eight R12 tests are:
 
-Test `graphics` wykonuje zbudowaną procedurę 65C02 w modelu portali XRAM,
-z osobnymi kopiami pamięci RIA i VGA. Sprawdza 1080 deskryptorów znaków,
-odświeżanie obu pól, statusu oraz naprawę utraconych zapisów.
-Nie modeluje opóźnień magistrali fizycznego Pico.
-Test `music-tempo` porównuje stan oryginalnego sekwencera po 1323 wywołaniach
-ze stanem portu po 1600 taktach VGA, sprawdzając nuty i obwiednie po każdym takcie.
-Sprawdza też odrzucanie powtórnych IRQ, w tym przy przepełnieniu licznika VGA.
+| Test | Coverage |
+| --- | --- |
+| `xex` | Source identity, XEX parsing, depacking, and patch anchors |
+| `title-pixels` | Every splash pixel against the XEX bitmap and DLI palettes |
+| `timing` | Delay timing, VGA counter wrap, register/flag contracts, and pacing |
+| `graphics` | 1080 glyph descriptors, field/status uploads, and lost-write recovery |
+| `music-tempo` | Original sequencer state after 1323 updates versus 1600 VGA ticks, including note/envelope state and duplicate IRQ rejection |
+| `native-title` | Preloaded XRAM, keyboard and both gamepads, timeout, held buttons, and launch-key release |
+| `native-game` | Actual ROM boot, menu, two players, movement, action buttons, gamepad, and return to menu |
+| `audio` | Both music voices, all 19 effects, simultaneous effects, mute/resume, PSG registers, and mixer headroom |
 
-## Organizacja portu
+The three native/emulator tests are registered when CMake finds `rp6502-emu`
+in `tools/` or on PATH. Set `-DSPY_EMULATOR=/path/to/rp6502-emu` to specify it.
+Gameplay checks drive keyboard/gamepad input without compiled-in test hooks
+or setting character positions. Audio checks additionally submit effect IDs
+through the original game's request queue.
 
-- `tools/prepare_spy.py`: kontrola SHA-256, parsowanie XEX, dekompresja,
-  odzyskanie pięciu nakładek i złożenie obrazu pamięci.
-- `tools/prepare_title.py`: wyodrębnienie ekranu v2 do bitmapy VGA 320×200,
-  4 bpp. ROM ładuje obraz i konfigurację do XRAM $0000–$807B. Po zamknięciu
-  ekranu host czyści XRAM i przeznacza tę pamięć na grafikę gry.
-- `src/spy.asm`, `src/ria.inc`: obsługa sprzętu bez pożyczania zmiennych
-  ze strony zerowej gry.
-- `src/spy.cfg`: host w $C000–$CFFF, tablice w $D800–$DFFF,
-  procedura startu i splash w $E000–$E3FB.
-  $E3FC–$E3FF pozostaje buforem loadera nakładek.
-- `build/cc65/release/analysis.json`: mapa segmentów i nakładek.
-- `tests/`: kontrola źródła i test uruchomieniowy.
+Generated screenshots in the build directory are `test-title.png`,
+`test-game.png`, and `test-menu.png`. `title.png` is the splash extracted from
+the XEX. CI builds the ROM and runs tests that do not require the local emulator;
+it does not overwrite the archived reference release.
 
-Oryginalny start znajduje się pod $0C00. Procedury VBI i dziewięć DLI
-wywołuje przerwanie RP6502; ich zmiany kolorów i sprite'ów trafiają
-do pasów VGA. Usługa Atari SETVBV pod $E45C jest przekierowana do hosta.
-Nakładki mieszczą się w RAM Picocomputera bez bankowania ROM Atari.
+## Project layout
 
-Adres $14 po przejęciu sprzętu przez grę oznacza pozycję kursora menu,
-a nie zegar systemowy. Port celowo go nie inkrementuje.
+- `releases/r12/`: preserved reference ROM, checksum, and validation/environment record.
+- `tools/prepare_spy.py`: SHA-256 checks, XEX parsing, depacking, recovery of five
+  overlays, and assembly of the memory image.
+- `tools/prepare_title.py`: extraction of the v2 splash to a 320×200, 4 bpp VGA
+  bitmap. The ROM preloads the image and configuration into XRAM `$0000–$807B`.
+  After the splash, the host clears XRAM and reuses it for gameplay graphics.
+- `src/spy.asm`, `src/ria.inc`: hardware support without borrowing game zero-page variables.
+- `src/spy.cfg`: host at `$C000–$CFFF`, tables at `$D800–$DFFF`, and startup/splash
+  at `$E000–$E3FB`. `$E3FC–$E3FF` remains the overlay loader's scratch space.
+- `build/cc65/release/analysis.json`: segment and overlay map.
+- `tests/`: source checks and execution tests.
 
-Dokumentacja: [VGA](https://picocomputer.github.io/vga.html),
+The original game entry is `$0C00`. The RP6502 interrupt calls the VBI and nine
+DLIs, mapping their palette and sprite changes to VGA bands. The Atari SETVBV
+service at `$E45C` is redirected to the host. The overlays fit into Picocomputer
+RAM without Atari ROM banking.
+
+After the game takes over, address `$14` is the menu cursor, not the OS clock.
+The port deliberately does not increment it.
+
+Hardware documentation: [VGA](https://picocomputer.github.io/vga.html),
 [RIA](https://picocomputer.github.io/ria.html).
-XEX pozostaje niezmieniony. Gra i jej oryginalne zasoby należą do ich
-właścicieli; kod portu nie nadaje im nowej licencji.
+The source XEX files remain unchanged. The game and its original assets belong
+to their respective owners; the port does not grant them a new license.
