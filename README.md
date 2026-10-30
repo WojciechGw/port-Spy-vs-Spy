@@ -8,6 +8,35 @@ VGA graphics, keyboard input, two gamepads, and PSG audio.
 emulator and on a physical Picocomputer on October 29, 2026, including the
 splash screen and the transition to the working game with music.
 
+## Current build: R16
+
+R14 changes the background around the monitors, side panels, and cables to
+black in the menu and during gameplay. It retains the original cabinet and
+cable artwork, colors inside the monitors and panels, splash screen, controls,
+and R12 music tempo. The background change is a static transparent/black VGA
+overlay and adds no work to the game IRQ.
+Compared with R13, R14 also removes the remaining background slivers above
+and below the right-hand panels. The line beneath the playfields is retained;
+the mask over the monitor area is unchanged.
+
+R15 adds a two-pixel segment to the left end of each cable, connecting it to
+the corresponding playfield frame. The extension copies the neighboring cable
+pattern into the built ROM's graphics and updates the exterior mask to expose
+it. The line beneath the playfields and the source XEX files are unchanged.
+
+R16 restores the blinking white underline beneath the selected menu setting.
+The cursor's eight glyph bytes are uploaded every VGA frame, so alternating
+field uploads cannot repeatedly sample only its blank phase. All four cursor
+positions are refreshed to clear the previous selection when moving between
+settings. The visible cursor holds each phase for 16 VGA frames (about two
+blinks per second), independent of the short menu delays. Gameplay glyphs and
+music timing are unchanged.
+
+Build output: **`build/cc65/release/spy-vs-spy-r16.rp6502`** (also available as
+`spy-vs-spy.rp6502` in that directory). The footer reads
+`SPY R16 MUSIC 49.6125 HZ`. R16 has been checked in the emulator; physical
+hardware confirmation is pending. The archived R12 below remains unchanged.
+
 ## Reference release
 
 - Preserved ROM: [spy-vs-spy-r12.rp6502](releases/r12/spy-vs-spy-r12.rp6502).
@@ -19,8 +48,8 @@ splash screen and the transition to the working game with music.
 The copy in `releases/r12/` is outside the build directory and is not overwritten
 by CMake. Preserve it for comparisons with future versions. A fresh build writes
 `build/cc65/release/spy-vs-spy.rp6502` and
-`build/cc65/release/spy-vs-spy-r12.rp6502`; these are build outputs, not the archive.
-The menu footer identifies this release as `SPY R12 MUSIC 49.6125 HZ`.
+`build/cc65/release/spy-vs-spy-r16.rp6502`; these are build outputs, not the archive.
+The archived release's menu footer reads `SPY R12 MUSIC 49.6125 HZ`.
 
 Verify the archived ROM from the repository root:
 
@@ -162,6 +191,12 @@ Each VSYNC interrupt uploads either the complete upper or lower field, plus
 the status row. Both fields refresh within two interrupts, about 33 ms at
 60 Hz, without a cache or a queue of changed bytes.
 
+R14 initializes a static 320×200, 1 bpp exterior mask in XRAM `$9000–$AF3F`
+after the normal XRAM clear. Its bitmap configuration and transparent/black
+palette occupy `$CE80–$CE91`. The mask uses a fill on plane 2 above the glyphs;
+the existing player sprites remain on that plane as sprites. A compact mask
+is generated from cabinet bounds and the original artwork at build time.
+
 The graphics test uses separate RIA and VGA memory copies. It checks positions,
 palettes, glyph format, complete redraws, and recovery within two interrupts
 after a simulated lost burst of PIX writes. It does not model physical Pico
@@ -237,7 +272,7 @@ installed entries. Pip can move directories from TEMP with permissions private
 to the installing account; without inheritance, another account running VS Code
 may encounter `ModuleNotFoundError` or `WinError 5`.
 
-The eight R12 tests are:
+The nine tests are:
 
 | Test | Coverage |
 | --- | --- |
@@ -248,9 +283,10 @@ The eight R12 tests are:
 | `music-tempo` | Original sequencer state after 1323 updates versus 1600 VGA ticks, including note/envelope state and duplicate IRQ rejection |
 | `native-title` | Preloaded XRAM, keyboard and both gamepads, timeout, held buttons, and launch-key release |
 | `native-game` | Actual ROM boot, menu, two players, movement, action buttons, gamepad, and return to menu |
+| `menu-cursor` | White/blank phases in VGA memory and rendered frames on all four rows, blink timing, clearing the previous selection, and changing a setting |
 | `audio` | Both music voices, all 19 effects, simultaneous effects, mute/resume, PSG registers, and mixer headroom |
 
-The three native/emulator tests are registered when CMake finds `rp6502-emu`
+The four native/emulator tests are registered when CMake finds `rp6502-emu`
 in `tools/` or on PATH. Set `-DSPY_EMULATOR=/path/to/rp6502-emu` to specify it.
 Gameplay checks drive keyboard/gamepad input without compiled-in test hooks
 or setting character positions. Audio checks additionally submit effect IDs

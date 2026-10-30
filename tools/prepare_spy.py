@@ -131,6 +131,107 @@ def tables(out):
         for i in range(0, 256, 16):
             lines.append(' .byte ' + ','.join(str(x) for x in values[i:i+16]))
     (out/'tables.inc').write_text('\n'.join(lines)+'\n', encoding='ascii')
+    backdrop(out)
+
+
+def patch_cable_extensions(memory):
+    """Bridge the two-pixel gap from each cable's left end to its monitor.
+
+    The first color-clock pixel of column 29 is exterior fill in the XEX.
+    Copy the adjacent cable pixel (blue PMG showing through, or black edge).
+    Keep the monitor at x<232 and all original cable pixels intact.
+    """
+    for top in (111, 207):
+        for screen_y in range(top, top+7):
+            y = screen_y-20
+            offset = (y//24)*1024+((y%24)//8*40+29)*8+y%8
+            address = 0x9400+offset
+            original = memory[address]
+            if original >> 6 != 2:
+                raise ValueError(f'Unexpected cable extension pixel at ${address:04X}')
+            memory[address] = (original & 0x3f) | ((original & 0x30) << 2)
+
+
+def backdrop(out):
+    """Build a black overlay around the static cabinet silhouettes.
+
+    Each run stores row count and two half-open spans: monitor and side panel.
+    Bounds use two-pixel Atari color-clock units. Outside those bounds, mask
+    only background-color pixels from the original artwork, preserving the
+    bezel and cable outlines. The overlay sits above the glyph plane.
+    """
+    runs = []
+    for y in range(20, 220):
+        if y < 28:
+            left, right = 28-y, y+88
+        elif y == 119:
+            left, right = 1, 116
+        elif 120 <= y < 124:
+            left, right = 124-y, y-8
+        elif y == 216:
+            left, right = 11, 106
+        elif y > 216:
+            left, right = 0, 0
+        else:
+            left, right = 0, 116
+        panel_left = panel_right = 0
+        for top in (28, 124):
+            row = y-top
+            if row == 0:
+                panel_left, panel_right = 152, 156
+            elif row in (1, 2, 3, 4):
+                # Only the raised connector encloses background pixels here;
+                # the long gap above the sloping panel edge is exterior.
+                panel_left, panel_right = 151, 157
+            elif 5 <= row <= 6:
+                panel_left, panel_right = 123-row, 153+row
+            elif 7 <= row <= 67:
+                panel_left, panel_right = 116, 160
+            elif 68 <= row <= 71:
+                panel_left, panel_right = row+48, 227-row
+            # Rows 72/73 are below the panel: its bevel and cable survive
+            # through their original non-background pixels, not a filled span.
+        spans = [left, right, panel_left, panel_right]
+        if runs and runs[-1][1:] == spans:
+            runs[-1][0] += 1
+        else:
+            runs.append([1]+spans)
+    # Pixel value 2 is the original exterior fill. Other pixels belong to
+    # cabinet outlines and cables and must remain visible above the mask.
+    memory = bytearray((out/'original.bin').read_bytes())
+    patch_cable_extensions(memory)
+    bitmap = bytearray()
+    for count, left, right, panel_left, panel_right in runs:
+        for _ in range(count):
+            y = len(bitmap)//40
+            for column in range(40):
+                value = 0
+                for pixel in range(8):
+                    x = column*8+pixel
+                    offset = (y//24)*1024+((y%24)//8*40+x//8)*8+y%8
+                    color = (memory[0x9400+offset] >> (6-2*((x%8)//2))) & 3
+                    inside = left <= x//2 < right or panel_left <= x//2 < panel_right
+                    value = value*2 + (not inside and color == 2)
+                bitmap.append(value)
+    # 1..127: zero run; 129..255: FF run; 128: literal byte; 0: end.
+    encoded = []
+    pos = 0
+    while pos < len(bitmap):
+        value = bitmap[pos]
+        if value not in (0, 255):
+            encoded.extend((128, value))
+            pos += 1
+            continue
+        count = 1
+        while pos+count < len(bitmap) and bitmap[pos+count] == value and count < 127:
+            count += 1
+        encoded.append(count | (128 if value else 0))
+        pos += count
+    encoded.append(0)
+    lines = ['; Generated static exterior mask, zero/FF runs and literals.', 'backdrop_runs:']
+    lines += [' .byte '+','.join(map(str, encoded[i:i+16])) for i in range(0, len(encoded), 16)]
+    (out/'backdrop.inc').write_text('\n'.join(lines)+'\n', encoding='ascii')
+
 
 
 def main():
@@ -143,6 +244,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     if args.link:
         memory = bytearray((out/'original.bin').read_bytes())
+        patch_cable_extensions(memory)
         labels = {}
         for line in (out/'host.lbl').read_text().splitlines():
             fields = line.split()

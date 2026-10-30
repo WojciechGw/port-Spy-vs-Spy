@@ -19,7 +19,7 @@ add_custom_command(
     DEPENDS python-deps tools/prepare_title.py tools/prepare_spy.py tools/rp6502.py "${SPY_TITLE}"
     VERBATIM)
 add_custom_command(
-    OUTPUT "${SPY_OUT}/original.bin" "${SPY_OUT}/tables.inc" "${SPY_OUT}/analysis.json"
+    OUTPUT "${SPY_OUT}/original.bin" "${SPY_OUT}/tables.inc" "${SPY_OUT}/backdrop.inc" "${SPY_OUT}/analysis.json"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/prepare_spy.py"
         "${SPY_SOURCE}" "${SPY_OUT}"
     DEPENDS python-deps tools/prepare_spy.py "${SPY_SOURCE}"
@@ -31,20 +31,20 @@ add_custom_command(
     COMMAND "${LD65}" -C "${CMAKE_CURRENT_SOURCE_DIR}/src/spy.cfg"
         -o "${SPY_OUT}/host.bin" -Ln "${SPY_OUT}/host.lbl"
         --dbgfile "${SPY_OUT}/host.dbg" -m "${SPY_OUT}/host.map" "${SPY_OUT}/host.o"
-    DEPENDS src/spy.asm src/spy.cfg src/ria.inc "${SPY_OUT}/tables.inc"
+    DEPENDS src/spy.asm src/spy.cfg src/ria.inc "${SPY_OUT}/tables.inc" "${SPY_OUT}/backdrop.inc"
     VERBATIM)
 add_custom_command(
-    OUTPUT "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r12.rp6502"
+    OUTPUT "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/prepare_spy.py"
         "${SPY_SOURCE}" "${SPY_OUT}" --link
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
         create "${SPY_OUT}/spy.bin" "${SPY_OUT}/title.rp6502" -a 0 -r 0xe000 -o "${SPY_OUT}/spy-vs-spy.rp6502"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r12.rp6502"
+        "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502"
     DEPENDS "${SPY_OUT}/host.bin" "${SPY_OUT}/host.bin.tables"
         "${SPY_OUT}/host.lbl" "${SPY_OUT}/original.bin" "${SPY_OUT}/title.rp6502" tools/prepare_spy.py tools/rp6502.py
     VERBATIM)
-add_custom_target(spy ALL DEPENDS "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r12.rp6502")
+add_custom_target(spy ALL DEPENDS "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502")
 include(CTest)
 if(BUILD_TESTING)
     add_test(NAME xex
@@ -65,6 +65,9 @@ if(BUILD_TESTING)
                 "${SPY_EMULATOR}" "${SPY_OUT}")
         add_test(NAME native-game
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native.py"
+                "${SPY_EMULATOR}" "${SPY_OUT}")
+        add_test(NAME menu-cursor
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_menu_cursor.py"
                 "${SPY_EMULATOR}" "${SPY_OUT}")
         add_test(NAME audio
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_audio.py"

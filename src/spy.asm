@@ -56,7 +56,7 @@ start:
     iny
     bne @xclear
     ; Fixed display list: eight 24-line bands and an 8-line status band.
-    jsr configure_glyphs
+    jsr configure_display
     stz RIA_ADDR0
     lda #$e4
     sta RIA_ADDR0+1
@@ -78,7 +78,7 @@ start:
     cpx #126
     bne @bg
     xreg 1,0,0,1
-    jsr configure_vga
+    jsr configure_game_vga
     xreg 0,0,0,$ff00
     xreg 0,0,2,$ff20
     xreg 0,1,0,$ff80
@@ -395,7 +395,7 @@ irq:
     cmp #9
     bne @band
 @render:
-    jsr fonts
+    jsr fonts_with_cursor
     jsr sprite_images
 @done:
 irq_done:
@@ -880,7 +880,7 @@ footer:
     .word 0,228,40,1,$e414,$e410,$ffff
     .word $0020,$ffff
 footer_text:
-    .byte "SPY R12  MUSIC 49.6125 HZ"
+    .byte "SPY R16  MUSIC 49.6125 HZ"
     .res 40-(*-footer_text),$20
 footer_end:
 backgrounds:
@@ -930,6 +930,139 @@ sprite_image_hi:
         .byte >($d200+28+b*24),>($d600+28+b*24),>($da00+(28+b*24)*4),>($de00+(28+b*24)*4)
     .endrepeat
 .include "tables.inc"
+
+.segment "TABLES"
+; The original XOR cursor toggles on each short menu delay. After pacing
+; these delays to VSYNC, field uploads/display sampling can hide its blink.
+; Draw a white underline for the original selected row ($14), with each
+; phase held for 16 VGA frames. Refresh all positions to clear old rows.
+fonts_with_cursor:
+    lda $0377
+    cmp #1
+    beq @menu
+    jmp fonts
+@menu:
+    ldx #7
+cursor_upload:
+    jsr cursor_address
+cursor_read:
+    lda $974e
+    sta cursor_saved,x
+    txa
+    lsr
+    cmp $14
+    bne @blank
+    lda frame_count
+    and #$10
+    beq @blank
+    lda #$55                ; 2bpp palette index 1: white
+    bra @write
+@blank:
+    lda #0
+@write:
+    jsr cursor_write
+    sta RIA_RW0
+    dex
+    bpl cursor_upload
+    ; The bulk upload must use the same cursor pixels: briefly uploading
+    ; the original XOR bytes would expose black/blank pixels during scanout.
+    jsr fonts
+    ldx #7
+@restore:
+    jsr cursor_address
+    lda cursor_saved,x
+    jsr cursor_write
+    dex
+    bpl @restore
+    rts
+cursor_address:
+    lda cursor_lo,x
+    sta cursor_read+1
+    sta cursor_write+1
+    sta RIA_ADDR0
+    lda cursor_hi,x
+    sta RIA_ADDR0+1
+    clc
+    adc #$94
+    sta cursor_read+2
+    sta cursor_write+2
+    rts
+cursor_write:
+    sta $974e
+    rts
+cursor_lo: .byte $4e,$4f,$ce,$cf,$0e,$0f,$4e,$4f
+cursor_hi: .byte $03,$03,$04,$04,$06,$06,$07,$07
+cursor_saved: .res 8
+
+; Static foreground mask: opaque black only on exterior background pixels.
+; The original cabinet, cable and game pixels retain their original palette.
+configure_display:
+    jsr configure_backdrop
+    jmp configure_glyphs
+configure_game_vga:
+    jsr configure_vga
+    lda #<backdrop_commands
+    sta command_read+1
+    lda #>backdrop_commands
+    sta command_read+2
+    jmp configure_commands
+configure_backdrop:
+    stz RIA_ADDR0
+    lda #$90
+    sta RIA_ADDR0+1
+    lda #<backdrop_runs
+    sta backdrop_read+1
+    lda #>backdrop_runs
+    sta backdrop_read+2
+@next:
+    jsr backdrop_read
+    beq @config
+    cmp #$80
+    beq @literal
+    tax
+    lda #0
+    bcc @repeat
+    txa
+    and #$7f
+    tax
+    lda #$ff
+@repeat:
+    sta RIA_RW0
+    dex
+    bne @repeat
+    bra @next
+@literal:
+    jsr backdrop_read
+    sta RIA_RW0
+    bra @next
+@config:
+    lda #$80
+    sta RIA_ADDR0
+    lda #$ce
+    sta RIA_ADDR0+1
+    ldx #0
+@copy:
+    lda backdrop_config,x
+    sta RIA_RW0
+    inx
+    cpx #18
+    bne @copy
+    rts
+backdrop_read:
+    lda backdrop_runs
+    inc backdrop_read+1
+    bne :+
+    inc backdrop_read+2
+:
+    cmp #0
+    rts
+backdrop_config:
+    .byte 0,0
+    .word 0,20,320,200,$9000,$ce8e
+    .word 0,$0020
+backdrop_commands:
+    vcmd 3,0,$ce80,2,20,220
+    .byte 0
 
 .segment "TITLE"
 .export boot
@@ -1039,3 +1172,4 @@ title_commands:
     vcmd 1,0,$8040,1,228,236
     .byte 0
 
+.include "backdrop.inc"

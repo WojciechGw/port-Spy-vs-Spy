@@ -99,13 +99,14 @@ for band in range(9):
 
 
 def render():
-    cycle_counts.append(call(labels['fonts']))
+    cycle_counts.append(call(labels['fonts_with_cursor']))
 
 
 def matches():
     return mem.vga[:0x2200] == source[:0x2200]
 
 
+mem[0x377] = 2  # Gameplay must retain every original glyph byte.
 for _ in range(2):
     render()
 assert matches(), 'Initial glyph data differs from original Atari bytes'
@@ -131,6 +132,17 @@ assert not matches()
 render()
 render()
 assert matches(), 'Lost erase burst remains after two IRQs'
+mem[0x377] = 1
+for selected in range(4):
+    mem[0x14] = selected
+    for frame in (16, 32):
+        mem[labels['frame_count']] = frame
+        original_glyphs = mem[0x9400:0xb800]
+        render()
+        assert mem[0x9400:0xb800] == original_glyphs, 'Menu rendering changed original game memory'
+        for slot, address in enumerate((0x34e, 0x4ce, 0x60e, 0x74e)):
+            expected = 0x55 if slot == selected and frame == 16 else 0
+            assert mem.vga[address:address+2] == bytes([expected])*2
 assert mem.address_reads == 0
 assert max(cycle_counts) < 55000, 'Graphics leaves too little CPU time at 8 MHz'
 print('PASS: 1080 glyph descriptors, native 2bpp doubling, status each IRQ, both fields within 2 IRQs; '

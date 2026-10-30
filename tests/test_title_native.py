@@ -34,7 +34,7 @@ for name, press, release in cases:
     else:
         script += ['run 400', f'peek {active} 1', 'run 120']
     script += [f'peek {active} 0', 'peek 0x377 1', 'peek 0x14 0',
-               'peek xram:0xe414 0x53 0x50 0x59 0x20 0x52 0x31 0x32']
+               'peek xram:0xe414 0x53 0x50 0x59 0x20 0x52 0x31 0x36']
     result = subprocess.run([emu, str(out/'spy-vs-spy.rp6502'), '--script', '-',
                              '--phi2', '8000', '--seed', '123', '--mute'],
                             input='\n'.join(script)+'\n', text=True, capture_output=True, timeout=30)
