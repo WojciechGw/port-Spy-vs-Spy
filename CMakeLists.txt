@@ -3,12 +3,13 @@ project(SPY-VS-SPY NONE)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_program(CA65 ca65 REQUIRED)
 find_program(LD65 ld65 REQUIRED)
-set(SPY_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/xex/SpyVsSpy.xex")
-set(SPY_TITLE "${CMAKE_CURRENT_SOURCE_DIR}/xex/Spy Vs Spy (v2).xex")
+set(SPY_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/assets/native/game.bin")
+set(SPY_TITLE "${CMAKE_CURRENT_SOURCE_DIR}/assets/native/title.bin")
+set(SPY_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/assets/native/manifest.json")
 set(SPY_OUT "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(python-deps
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ensure_build_deps.py"
-    COMMENT "Checking Python build dependencies"
+    COMMENT "Preparing Python dependencies for tests and optional XEX extraction"
     VERBATIM)
 add_custom_command(
     OUTPUT "${SPY_OUT}/title.bin" "${SPY_OUT}/title.png" "${SPY_OUT}/title.rp6502"
@@ -16,13 +17,13 @@ add_custom_command(
         "${SPY_TITLE}" "${SPY_OUT}"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
         create "${SPY_OUT}/title.bin" -a "XRAM(0)" -o "${SPY_OUT}/title.rp6502"
-    DEPENDS python-deps tools/prepare_title.py tools/prepare_spy.py tools/rp6502.py "${SPY_TITLE}"
+    DEPENDS tools/prepare_title.py tools/prepare_spy.py tools/native_assets.py tools/rp6502.py "${SPY_TITLE}" "${SPY_MANIFEST}"
     VERBATIM)
 add_custom_command(
     OUTPUT "${SPY_OUT}/original.bin" "${SPY_OUT}/tables.inc" "${SPY_OUT}/backdrop.inc" "${SPY_OUT}/analysis.json"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/prepare_spy.py"
         "${SPY_SOURCE}" "${SPY_OUT}"
-    DEPENDS python-deps tools/prepare_spy.py "${SPY_SOURCE}"
+    DEPENDS tools/prepare_spy.py tools/native_assets.py "${SPY_SOURCE}" "${SPY_MANIFEST}"
     VERBATIM)
 add_custom_command(
     OUTPUT "${SPY_OUT}/host.bin" "${SPY_OUT}/host.bin.tables" "${SPY_OUT}/host.lbl"
@@ -46,8 +47,9 @@ add_custom_command(
     VERBATIM)
 add_custom_target(spy ALL DEPENDS "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502")
 include(CTest)
+option(SPY_TEST_XEX "Also validate extraction against the optional original XEX files" OFF)
 if(BUILD_TESTING)
-    add_test(NAME xex
+    add_test(NAME native-assets
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prepare.py")
     add_test(NAME title-pixels
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_title.py")
@@ -57,6 +59,12 @@ if(BUILD_TESTING)
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_graphics.py" "${SPY_OUT}")
     add_test(NAME music-tempo
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_music_tempo.py" "${SPY_OUT}")
+    if(SPY_TEST_XEX)
+        add_test(NAME xex-original
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_xex.py")
+        add_test(NAME title-original
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_title_xex.py")
+    endif()
     find_program(SPY_EMULATOR NAMES rp6502-emu rp6502-emu.exe
         HINTS "${CMAKE_CURRENT_SOURCE_DIR}/tools")
     if(SPY_EMULATOR)

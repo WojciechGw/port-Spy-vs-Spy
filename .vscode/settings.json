@@ -1,3 +1,19 @@
 {
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    // CMake builds assembler only and has no C include paths to provide.
+    // These settings are for editing SDK headers, not for building the ROM.
+    "C_Cpp.default.configurationProvider": "",
+    "C_Cpp.default.compilerPath": "",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/src",
+        "${userHome}/.rp6502/cc65/include"
+    ],
+    "C_Cpp.default.defines": [
+        "__RP6502__=1",
+        "__fastcall__=",
+        "__cdecl__="
+    ],
+    "C_Cpp.default.cStandard": "c99",
+    "files.associations": {
+        "xram.h": "c"
+    }
 }

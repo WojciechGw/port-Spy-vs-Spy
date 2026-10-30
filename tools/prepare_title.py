@@ -1,6 +1,7 @@
-"""Extract v2's original ANTIC E loading picture, including its three DLIs.
+"""Prepare the saved native loading picture and its PNG preview.
 
-Only the two segments preceding the first INIT belong to the picture. Later
+The optional extract_assets.py uses extract() below. Only the two segments
+preceding the first INIT belong to the original picture. Later
 segments overwrite them with a different game version and must not be merged.
 The result is a native 320x200 4bpp VGA bitmap, preloaded into XRAM by the ROM.
 """
@@ -11,6 +12,7 @@ import struct
 import zlib
 
 from prepare_spy import atari_color, segments
+from native_assets import load_asset
 
 SOURCE_SHA = 'e9ebfa0037c87b573390c1c64b624b6e6265a550c4da80306c43942e5d97d4b0'
 
@@ -101,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('source', type=Path)
     parser.add_argument('output', type=Path)
     args = parser.parse_args()
-    image = extract(args.source.read_bytes())
+    image = load_asset(args.source)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output/'title.bin').write_bytes(image)
     (args.output/'title.png').write_bytes(preview(image))

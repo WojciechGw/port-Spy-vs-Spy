@@ -4,9 +4,7 @@
 #define XRAM_H
 
 #include <rp6502.h>
-#include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
 /* Insert xram.h snippets from docs to build your system. */
 /* https://picocomputer.github.io/sdk.html#xram-memory-map */

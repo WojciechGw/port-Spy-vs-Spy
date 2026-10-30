@@ -244,40 +244,44 @@ Picocomputer. Adjacent `*.stats.json` files report peaks and clipped sample coun
 ## Building and testing
 
 Requirements: Python 3, CMake 3.28+, Ninja, and cc65's `ca65` and `ld65` on PATH.
-No C runtime or modified cc65 compiler is required.
+No C runtime or modified cc65 compiler is required. Ordinary builds use only
+Python's standard library; they need neither XEX files nor py65 or network access.
+The extracted inputs are included in `assets/native/`: `game.bin`, `title.bin`,
+and `manifest.json`. Keep these files together; their sizes and SHA-256 hashes
+are checked during the build. The resulting ROM is byte-identical to R16 built
+from the original XEXs.
 
 ```powershell
 cmake --preset cc65/Release
 cmake --build --preset cc65/Release
+```
+
+These commands also work with the entire `xex/` directory absent. The VS Code
+Build command uses the same process. The source XEX files are kept only for
+optional extraction and comparison against the originals.
+
+The execution tests additionally require py65. Prepare it explicitly, then run
+the default suite (which also works without XEX files):
+
+```powershell
+cmake --build build/cc65/release --target python-deps
 ctest --test-dir build/cc65/release --output-on-failure
 ```
 
-During the build, py65 executes the original depacker and splash DLIs on the
-development computer. It is not included in the RP6502 program.
-
-Before each build, CMake checks the required py65 imports using the same Python
-interpreter that builds the ROM. If the package is absent or incomplete, it
-installs `requirements-build.txt` into `build/python-deps` with `--upgrade`.
-Installation requires access to the package through pip; subsequent builds
-work offline once the dependencies are available. This also applies to the
-VS Code Build command. To install manually:
-
-```powershell
-python -m pip install --upgrade --target build/python-deps -r requirements-build.txt
-```
-
-Installing into the active Python environment without `--target` is also
-supported. On Windows, the dependency script enables inherited permissions on
-installed entries. Pip can move directories from TEMP with permissions private
-to the installing account; without inheritance, another account running VS Code
-may encounter `ModuleNotFoundError` or `WinError 5`.
+The explicit `python-deps` target checks the Python interpreter selected by
+CMake and installs `requirements-build.txt` into `build/python-deps` only when
+needed. Installing missing dependencies requires pip package access. They are
+used on the development computer, never included in the ROM. The target is
+not part of ordinary builds. Installation into the active Python environment
+is also supported. The helper repairs inherited Windows permissions for its
+project-local installation.
 
 The nine tests are:
 
 | Test | Coverage |
 | --- | --- |
-| `xex` | Source identity, XEX parsing, depacking, and patch anchors |
-| `title-pixels` | Every splash pixel against the XEX bitmap and DLI palettes |
+| `native-assets` | Extracted asset integrity, rejection of damaged inputs, parser boundaries, and patch anchors |
+| `title-pixels` | Native splash fingerprint, palette, layout, doubled pixels, and PNG preview |
 | `timing` | Delay timing, VGA counter wrap, register/flag contracts, and pacing |
 | `graphics` | 1080 glyph descriptors, field/status uploads, and lost-write recovery |
 | `music-tempo` | Original sequencer state after 1323 updates versus 1600 VGA ticks, including note/envelope state and duplicate IRQ rejection |
@@ -294,16 +298,43 @@ through the original game's request queue.
 
 Generated screenshots in the build directory are `test-title.png`,
 `test-game.png`, and `test-menu.png`. `title.png` is the splash extracted from
-the XEX. CI builds the ROM and runs tests that do not require the local emulator;
+the saved native asset. CI checks out the project without `xex/`, builds before
+installing py65, and runs tests that do not require the local emulator;
 it does not overwrite the archived reference release.
+
+### Optional XEX extraction
+
+Only regeneration of `assets/native/` requires the two inspected XEX files and
+py65. From the repository root:
+
+```powershell
+python tools/ensure_build_deps.py
+python tools/extract_assets.py xex/SpyVsSpy.xex "xex/Spy Vs Spy (v2).xex" assets/native
+```
+
+This executes the original depacker and splash DLIs, checks the source hashes,
+and writes both unpatched assets and their manifest. Do not substitute a built
+`spy.bin` for `game.bin`: it already contains host patches.
+
+To additionally verify extraction against the original XEXs, including every
+splash pixel and DLI palette, enable the two optional tests:
+
+```powershell
+cmake --preset cc65/Release -DSPY_TEST_XEX=ON
+ctest --test-dir build/cc65/release --output-on-failure -R "xex-original|title-original"
+cmake --preset cc65/Release -DSPY_TEST_XEX=OFF
+```
 
 ## Project layout
 
 - `releases/r12/`: preserved reference ROM, checksum, and validation/environment record.
-- `tools/prepare_spy.py`: SHA-256 checks, XEX parsing, depacking, recovery of five
-  overlays, and assembly of the memory image.
-- `tools/prepare_title.py`: extraction of the v2 splash to a 320×200, 4 bpp VGA
-  bitmap. The ROM preloads the image and configuration into XRAM `$0000–$807B`.
+- `assets/native/`: extracted game and splash inputs, checksums and provenance.
+- `tools/extract_assets.py`: optional regeneration of those inputs from the XEXs.
+- `tools/prepare_spy.py`: native asset validation, generated tables/mask, and
+  assembly of the patched memory image; also contains the optional XEX depacker.
+- `tools/prepare_title.py`: preparation of the saved 320×200, 4 bpp VGA splash
+  and PNG preview; also contains the optional XEX extractor.
+  The ROM preloads the image and configuration into XRAM `$0000–$807B`.
   After the splash, the host clears XRAM and reuses it for gameplay graphics.
 - `src/spy.asm`, `src/ria.inc`: hardware support without borrowing game zero-page variables.
 - `src/spy.cfg`: host at `$C000–$CFFF`, tables at `$D800–$DFFF`, and startup/splash

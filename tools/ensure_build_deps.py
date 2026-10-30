@@ -1,4 +1,4 @@
-"""Check build dependencies and repair the project-local install when needed."""
+"""Prepare py65 for execution tests and optional extraction (not ROM builds)."""
 from pathlib import Path
 import subprocess
 import sys
@@ -40,7 +40,7 @@ def main():
     result = check()
     if result.returncode == 0:
         return 0
-    print(f'py65 CPU modules unavailable. Installing build dependencies with {sys.executable}',
+    print(f'py65 CPU modules unavailable. Installing test/extraction dependencies with {sys.executable}',
           flush=True)
     command = [sys.executable, '-m', 'pip', '--disable-pip-version-check', 'install', '--upgrade',
                '--target', str(TARGET), '-r', str(ROOT/'requirements-build.txt')]

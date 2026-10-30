@@ -1,7 +1,7 @@
-"""Unpack the supplied HOMESOFT XEX and prepare the native RP6502 image.
+"""Prepare the native RP6502 image from the extracted game asset.
 
-py65 is used on the build computer only, to execute the original depacker.
-No CPU emulator is included in the RP6502 program.
+The optional extract_assets.py uses unpack() to run the original depacker.
+Ordinary builds use only Python's standard library and the saved native data.
 """
 import argparse
 import hashlib
@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 import struct
 import sys
+from native_assets import load_asset, load_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'build/python-deps'))
@@ -234,6 +235,18 @@ def backdrop(out):
 
 
 
+def analysis_report(memory, steps, data):
+    report = {'source_sha256': SOURCE_SHA, 'depacker_instructions': steps,
+              'entry': '0C00', 'segments': [dict(start=f'{s:04X}', size=len(b)) for s,b in segments(data)],
+              'overlays': []}
+    for i in range(5):
+        report['overlays'].append(dict(index=i,
+            source=f'{memory[0xe476+i] | memory[0xe47b+i]<<8:04X}',
+            destination=f'{memory[0x2a5e+i] | memory[0x2a63+i]<<8:04X}',
+            size=128*memory[0x2a68+i]))
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
@@ -262,17 +275,9 @@ def main():
         patch_music(memory, labels)
         (out/'spy.bin').write_bytes(memory[:0xff00])
     else:
-        data = args.source.read_bytes()
-        memory, steps = unpack(data)
+        memory = load_asset(args.source)
         (out/'original.bin').write_bytes(memory)
-        report = {'source_sha256': SOURCE_SHA, 'depacker_instructions': steps,
-                  'entry': '0C00', 'segments': [dict(start=f'{s:04X}', size=len(b)) for s,b in segments(data)],
-                  'overlays': []}
-        for i in range(5):
-            report['overlays'].append(dict(index=i,
-                source=f'{memory[0xe476+i] | memory[0xe47b+i]<<8:04X}',
-                destination=f'{memory[0x2a5e+i] | memory[0x2a63+i]<<8:04X}',
-                size=128*memory[0x2a68+i]))
+        report = load_manifest(args.source.parent)['game_analysis']
         (out/'analysis.json').write_text(json.dumps(report, indent=2)+'\n')
         tables(out)
 

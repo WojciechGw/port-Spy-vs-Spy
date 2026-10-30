@@ -1,0 +1,78 @@
+{
+  "format": 1,
+  "sources": {
+    "game": {
+      "filename": "SpyVsSpy.xex",
+      "sha256": "3796ab51067e55489d42b7be27c1a9d83a7ed19e9be7cbed8889474747110b5c"
+    },
+    "title": {
+      "filename": "Spy Vs Spy (v2).xex",
+      "sha256": "e9ebfa0037c87b573390c1c64b624b6e6265a550c4da80306c43942e5d97d4b0"
+    }
+  },
+  "files": {
+    "game.bin": {
+      "size": 65536,
+      "sha256": "25191deaf8b241c362f18b2a02ad165054ded6730af37cb57fa7893a5dd9cf05"
+    },
+    "title.bin": {
+      "size": 32892,
+      "sha256": "3e34b575680f0f5fbf032b5427d3ab90582b824d05ab1740d2d68bc5648f193d"
+    }
+  },
+  "game_analysis": {
+    "source_sha256": "3796ab51067e55489d42b7be27c1a9d83a7ed19e9be7cbed8889474747110b5c",
+    "depacker_instructions": 560754,
+    "entry": "0C00",
+    "segments": [
+      {
+        "start": "2020",
+        "size": 27
+      },
+      {
+        "start": "0244",
+        "size": 1
+      },
+      {
+        "start": "20AC",
+        "size": 29524
+      },
+      {
+        "start": "02E2",
+        "size": 2
+      }
+    ],
+    "overlays": [
+      {
+        "index": 0,
+        "source": "E480",
+        "destination": "8900",
+        "size": 1664
+      },
+      {
+        "index": 1,
+        "source": "E480",
+        "destination": "8000",
+        "size": 1664
+      },
+      {
+        "index": 2,
+        "source": "EB00",
+        "destination": "8200",
+        "size": 2944
+      },
+      {
+        "index": 3,
+        "source": "F680",
+        "destination": "7A29",
+        "size": 1152
+      },
+      {
+        "index": 4,
+        "source": "FB00",
+        "destination": "7B00",
+        "size": 1024
+      }
+    ]
+  }
+}

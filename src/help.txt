@@ -1,2 +1,27 @@
-This information is displayed with the HELP and INFO monitor commands.
-Please change it to suit your project.
+SPY VS SPY - a port of Atari XL/XE game for Picocomputer 6502
+    
+An action and strategy game for one player against the computer or two
+players locally. Search rooms, collect the secret items, use traps against
+the other spy and escape before your opponent.
+
+STARTING In the menu, Up/Down selects a setting; Left/Right changes its value.
+Choose NUMBER OF PLAYERS. In solo play, check COMPUTER IS PLAYER and use
+the controls for the human spy. Space, Enter or F2 starts the game.
+
+KEYBOARD
+White spy:       Arrow keys to move; Space for fire/action or 1st gamepad.
+Black spy:       W/A/S/D to move; Left Shift for fire/action or 2nd gamepad.
+F2/Space/Enter:  Atari START.
+F3:              Atari SELECT input.
+F4:              Return to the menu.
+Esc:             Pause during play.
+M:               Music on/off; sound effects remain active.
+Fire/action is context-dependent: use it with the direction controls to
+interact with the game. There are no separate keys for individual actions.
+
+TRAPULATOR Quickly press and release Fire twice to activate the Trapulator, the panel
+to the right of your playfield. Use directions to choose a trap or the map,
+then press Fire once to confirm.
+The Trapulator is unavailable during combat when both spies share a room!
+
+Have fun!
