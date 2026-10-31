@@ -215,7 +215,6 @@ vga_commands:
             vcmd 5,$38,$d000+band*40,2,2,20+band*24,44+band*24
         .endif
     .endrepeat
-    vcmd 1,0,$e400,1,228,236
     .byte 0
 
 ; Atari SETVBV: A=6 (immediate VBI), X=high, Y=low.
@@ -1169,7 +1168,6 @@ title_armed: .byte 0
 title_released: .byte 0
 title_commands:
     vcmd 3,2,$8020,0,20,220
-    vcmd 1,0,$8040,1,228,236
     .byte 0
 
 .include "backdrop.inc"

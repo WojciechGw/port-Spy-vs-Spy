@@ -72,9 +72,10 @@ blinks per second), independent of the short menu delays. Gameplay glyphs and
 music timing are unchanged.
 
 Build output: **`build/cc65/release/spy-vs-spy-r16.rp6502`** (also available as
-`spy-vs-spy.rp6502` in that directory). The footer reads
-`SPY R16 MUSIC 49.6125 HZ`. R16 has been checked in the emulator; physical
-hardware confirmation is pending. The archived R12 below remains unchanged.
+`spy-vs-spy.rp6502` in that directory). Current builds show the splash artwork
+and game without the added bottom text overlays. Splash dismissal controls
+and music timing remain unchanged. R16 has been checked in the emulator;
+physical hardware confirmation is pending. The archived R12 below remains unchanged.
 
 ## Reference release
 
