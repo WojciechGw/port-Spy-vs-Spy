@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Spy vs Spy — Picocomputer 6502</title>
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #000; }
+    #game { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <noscript>Enable JavaScript to play Spy vs Spy.</noscript>
+  <script src="rp6502.js" onerror="document.getElementById('game').textContent = 'Could not load the emulator. Please reload the page.'"></script>
+  <script>
+    rp6502('game', 'spy-vs-spy.rp6502', {
+      title: 'Spy vs Spy — Picocomputer 6502',
+      bgcolor: '000000',
+      filter: 'sharp',
+      autoplay: 'off',
+      github: 'WojciechGw/port_spy-vs-spy',
+      footer: 'White spy: arrows + Space. Black spy: WASD + Left Shift. '
+        + 'Enter: start. F4: menu. Esc: pause. M: music. '
+        + 'Double fire: Trapulator. <a href="help.txt" target="_blank" rel="noopener">Full controls</a>.',
+    });
+  </script>
+</body>
+</html>

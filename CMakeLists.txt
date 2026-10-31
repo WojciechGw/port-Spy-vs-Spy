@@ -46,6 +46,10 @@ add_custom_command(
         "${SPY_OUT}/host.lbl" "${SPY_OUT}/original.bin" "${SPY_OUT}/title.rp6502" tools/prepare_spy.py tools/rp6502.py
     VERBATIM)
 add_custom_target(spy ALL DEPENDS "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502")
+option(SPY_BUILD_WEB "Package the browser player for GitHub Pages" OFF)
+if(SPY_BUILD_WEB)
+    include(cmake/SpyWeb.cmake)
+endif()
 include(CTest)
 option(SPY_TEST_XEX "Also validate extraction against the optional original XEX files" OFF)
 if(BUILD_TESTING)

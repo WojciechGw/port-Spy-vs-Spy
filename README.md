@@ -2,11 +2,42 @@
 
 <!-- rp6502
 preset: cc65/Release
-publish: spy-vs-spy.zip
+publish: spyvsspy.zip
 -->
 [![Play Spy vs Spy](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/screenshot.png)](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/)
 
 [Play it in your browser](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/).
+
+Click the play button to start the browser version with sound. The keyboard
+and gamepad controls are the same as on the Picocomputer (see below).
+
+### Publishing the browser version
+
+In **Settings → Pages → Build and deployment**, select **GitHub Actions** as
+the source. The **Build and deploy web player** workflow builds and tests the
+ROM, packages the official RP6502 0.42 WebAssembly player, and deploys it on
+every push to `main`. It can also be started from the Actions tab. Publishing
+is complete when the workflow's `deploy` job succeeds; the ROM build alone
+does not publish a playable page.
+
+The project URL redirects to `spyvsspy/`. The workflow publishes only the
+generated `build/cc65/release/web` folder, including `spyvsspy.zip` for download.
+The `rp6502` comment above is metadata for RP6502 tooling; it does not itself
+build or deploy anything.
+
+To build and preview the same site locally:
+
+```sh
+cmake --preset cc65/Release -DSPY_BUILD_WEB=ON
+cmake --build --preset cc65/Release
+python -m http.server 8000 --bind 127.0.0.1 --directory build/cc65/release/web
+```
+
+Open <http://127.0.0.1:8000/spyvsspy/>. Opening `index.html` directly from disk
+does not work because the emulator loads its ROM and WebAssembly over HTTP.
+The first web configure downloads the official emulator archive and verifies
+its SHA-256. Native builds keep working without this download; use
+`-DSPY_BUILD_WEB=OFF` to disable web packaging again.
 
 A native port of the supplied `xex/SpyVsSpy.xex` (Atari XL/XE, HOMESOFT).
 The original game code runs directly on the 6502 CPU. The host layer provides
