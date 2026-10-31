@@ -4,9 +4,9 @@
 preset: cc65/Release
 publish: spyvsspy.zip
 -->
-[![Play Spy vs Spy](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/screenshot.png)](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/)
+[![Play Spy vs Spy](https://wojciechgw.github.io/port-Spy-vs-Spy/spyvsspy/screenshot.png)](https://wojciechgw.github.io/port-Spy-vs-Spy/spyvsspy/)
 
-[Play it in your browser](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/).
+[Play it in your browser](https://wojciechgw.github.io/port-Spy-vs-Spy/spyvsspy/).
 
 Click the play button to start the browser version with sound. The keyboard
 and gamepad controls are the same as on the Picocomputer (see below).
