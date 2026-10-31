@@ -53,6 +53,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Require GitHub Actions as the Pages source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getPages({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            if (data.build_type !== 'workflow') {
+              core.setFailed(
+                'Settings > Pages > Build and deployment > Source must be GitHub Actions. ' +
+                'Deploy from a branch starts a second Jekyll deployment that can overwrite the web player. ' +
+                'Change the source, then rerun this workflow.'
+              );
+            }
       - uses: actions/configure-pages@v5
       - uses: actions/deploy-pages@v4
         id: deployment
