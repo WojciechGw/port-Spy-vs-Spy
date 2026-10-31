@@ -4,3 +4,7 @@ __pycache__
 /CMakeUserPresets.json
 /tools/rp6502-*
 /tools/msbasic-*
+
+# Raw network measurements may contain local addresses and device metadata.
+/tools/build/
+**/net-probe-pc/

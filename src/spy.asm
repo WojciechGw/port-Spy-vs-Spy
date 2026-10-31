@@ -7,6 +7,10 @@
 .export start, setvbv, irq, frame_count
 .export pace_main, delay_short, delay_long
 .export audio_source, music_tick
+.ifdef REMOTE_CLOCK
+.import remote_active, remote_input, remote_wait
+.export logic_frame, wait_ticks, music_phase, main_tick, wait_left
+.endif
 .segment "CODE"
 start:
     sei
@@ -14,6 +18,9 @@ start:
     ldx #$ff
     txs
     stz RIA_IRQ
+.ifdef REMOTE_CLOCK
+    stz remote_active
+.endif
     lda #<irq
     sta $fffe
     lda #>irq
@@ -258,7 +265,11 @@ delay_short:
     lda short_ticks,x
     sta wait_left
     stz wait_left+1
+.ifdef REMOTE_CLOCK
+    jsr remote_wait
+.else
     jsr wait_ticks
+.endif
     pla
     plp
     ldx $036d
@@ -274,7 +285,11 @@ delay_long:
     sta wait_left
     lda long_ticks_hi,x
     sta wait_left+1
+.ifdef REMOTE_CLOCK
+    jsr remote_wait
+.else
     jsr wait_ticks
+.endif
     plp
     lda #0
     ldx $036d
@@ -340,12 +355,23 @@ irq:
     cld
     lda RIA_IRQ
     stz RIA_IRQ            ; original VBI executes CLI; prevent reentrancy
+.ifdef REMOTE_CLOCK
+    lda remote_active
+    beq :+
+    jmp irq_done           ; physical VSYNC cannot advance a remote session
+:
+.endif
     lda RIA_VSYNC
     cmp video_stamp
     bne :+
     jmp irq_done           ; a duplicate IRQ must not advance music or VBI
 :
     sta video_stamp
+.ifdef REMOTE_CLOCK
+    jsr logic_frame
+    jmp irq_done
+logic_frame:
+.endif
     inc frame_count
     lda frame_count
     eor $d20a
@@ -355,7 +381,17 @@ irq:
     lda #1
     sta RIA_STEP0
     sta RIA_STEP1
+.ifdef REMOTE_CLOCK
+    lda remote_active
+    beq @local_input
+    jsr remote_input
+    bra @input_ready
+@local_input:
     jsr input
+@input_ready:
+.else
+    jsr input
+.endif
     lda $d40e
     and #$40
     beq @done
@@ -398,6 +434,9 @@ irq:
     jsr fonts_with_cursor
     jsr sprite_images
 @done:
+.ifdef REMOTE_CLOCK
+    rts
+.endif
 irq_done:
     sei
     lda #$80

@@ -276,10 +276,11 @@ not part of ordinary builds. Installation into the active Python environment
 is also supported. The helper repairs inherited Windows permissions for its
 project-local installation.
 
-The nine tests are:
+The ten tests are:
 
 | Test | Coverage |
 | --- | --- |
+| `determinism-analysis` | Offline audit comparison rules, state boundaries, input timeline, and guarded diagnostic seed patch |
 | `native-assets` | Extracted asset integrity, rejection of damaged inputs, parser boundaries, and patch anchors |
 | `title-pixels` | Native splash fingerprint, palette, layout, doubled pixels, and PNG preview |
 | `timing` | Delay timing, VGA counter wrap, register/flag contracts, and pacing |
@@ -324,6 +325,171 @@ cmake --preset cc65/Release -DSPY_TEST_XEX=ON
 ctest --test-dir build/cc65/release --output-on-failure -R "xex-original|title-original"
 cmake --preset cc65/Release -DSPY_TEST_XEX=OFF
 ```
+
+### Remote-game determinism experiment
+
+The `remotegame` branch includes an offline audit; it does not yet provide
+network play. With the native emulator available, run:
+
+```powershell
+cmake --build build/cc65/release --target remotegame-audit
+```
+
+This runs eight startup/input/clock cases for both the shipping ROM and a
+separate diagnostic ROM with a fixed game seed. Reports, replay scripts and
+RAM traces are written to `build/cc65/release/remotegame/`. The shipping R16 ROM
+is not modified. `report.md` summarizes the results; `report.json` and the
+per-case files retain the evidence. No XEXs, network connection or physical
+computer are needed for this experiment.
+
+Snapshots are taken at video-frame boundaries, not identical game instructions.
+The state map is incomplete, and the timeout test explicitly shortens the game
+clocks. Matching traces are not proof of lockstep readiness or a full winning
+playthrough. See [the R16 audit findings](docs/remotegame-audit-r16.md) and
+[the network-game plan](REMOTEGAME.md) for the current limits and next steps.
+
+### Shared logical clock prototype
+
+The next experiment starts both players from shared settings and a shared
+random seed, then advances the game only when a numbered pair of inputs is
+available. Build and test it explicitly:
+
+```powershell
+cmake --build build/cc65/release --target remote-clock
+cmake --build build/cc65/release --target python-deps
+cmake --build build/cc65/release --target remote-clock-test
+```
+
+The separate ROM is `build/cc65/release/remote-clock/remote-clock.rp6502`.
+**It requires the test controller:** after starting a game it waits for inputs
+in its RAM mailbox. It does not yet connect over Wi-Fi or provide standalone
+remote play. The default R16 build and preserved R12 release are unchanged.
+
+The native-emulator audit compares logical boundaries across eight cases,
+including 2 MHz, 7.9 MHz, 8 MHz and delayed input delivery. It also checks pause,
+restart, invalid and duplicate inputs, sequence wrap, music controls and a
+shortened-clock ending fixture. Scripts, RAM traces and `report.json` are saved
+under `remote-clock/audit/`. See [the clock experiment](docs/remotegame-clock.md)
+for the mailbox, results and remaining limitations.
+
+### AT/TCP hardware probe
+
+Network addresses below are illustrative `192.168.1.x` examples. Supply your
+actual addresses at runtime. Raw network reports are local files excluded from Git.
+
+A separate program is ready for the first test on two Wi-Fi Picocomputers:
+
+```powershell
+cmake --build build/cc65/release --target net-probe
+cmake --build build/cc65/release --target net-probe-test
+```
+
+Copy `build/cc65/release/net-probe/net-probe.rp6502` to both computers. Launch
+it without arguments for prompts. On the first computer select `listen`, port
+`6502`, graphics load `0`. On the second select `dial`, enter the first
+computer's LAN IPv4 address followed by `:6502`, and select load `0`.
+Start the listener first. Repeat with graphics load `1` on both computers.
+The Wi-Fi connection must already be configured on both machines.
+
+Use **SPY NETWORK PROBE 4** (shown at startup). Version 1 could time out on
+both machines because it sent the next AT command before consuming the final
+LF of the previous reply. Version 2 fixes that and uses the listen command
+syntax accepted by firmware `ad6293c`. The 120-second connection wait begins
+at `Modem ready`; configuration has separate five-second command limits.
+
+Version 3 adds post-run diagnostics on the dialer: counts strictly above
+200/500/1000 ms, the first sample, and the five slowest samples with their
+1-based numbers and start times relative to the first measurement. No per-packet
+logging occurs during the run. An incomplete sample is identified and excluded
+from RTT statistics. The wire format is compatible with a version 2 listener.
+
+Version 4 adds local phase measurements on both machines: DIAL transmit and
+response wait times, and LISTEN frame reception, reply preparation and transmit
+times. Reports include sample numbers and maxima across completed samples.
+Transmit completion means acceptance by the firmware, not delivery to the peer.
+No synchronized clocks are required. Use version 4 on both machines and
+collect both reports at 8 MHz with graphics load `1` to investigate the stalls.
+
+The dialer reports application round-trip times (min/average/p50/p95/max),
+partial transfers and maximum API/poll delays. The listener echoes validated,
+numbered binary frames. Escape cancels. This uses a transient `AT:` device
+and does not save modem settings or change the game ROM.
+
+The ROM also accepts `listen PORT [load] [chunk] [samples]` or
+`dial IPv4:PORT [load] [chunk] [samples]`. Load is 0/1; chunk is 1–64 bytes;
+samples is 1–300 and applies to the dialer. Defaults are 0, 32 and 300.
+Both roles time out after five seconds without a complete frame.
+
+This needs the RP6502 cc65 runtime (`cl65`); tests use `sim65` and, when
+available, the bundled native emulator. Automated tests mock modem I/O.
+The first user-reported hardware run passed on both computers (300 samples,
+no graphics load): RTT min/average/p50/p95/max was 52/74/62/100/1368 ms.
+A second run with graphics load on both computers at 8 MHz also passed:
+59/94/74/120/1390 ms. A third run with version 3 and graphics load passed with
+60/140/76/128/2091 ms; 12 of 300 responses exceeded one second, while the first
+took 75 ms. A fourth run with version 4 and graphics load passed with
+61/106/78/124/1434 ms and five responses over one second. DIAL's wait reached
+1418 ms while every measured LISTEN handling span stayed at or below 31 ms.
+This narrows the stalls to time outside that local handling interval; it does
+not identify the delayed transmission direction or the underlying cause.
+The next experiment uses a PC peer to test each Pico separately.
+The game's input buffer remains undecided. See
+[the hardware results and procedure](docs/remotegame-network-probe.md).
+
+The PC peer is ready and needs only Python 3 (no additional packages):
+
+```powershell
+python tools/net_probe_peer.py listen
+```
+
+Start PROBE 4 on one Pico as `dial`, targeting the PC's Ethernet IPv4 address
+and port `6502`, with graphics load `1`. Repeat separately for the other Pico,
+restarting the PC listener for each run. Reports with every completed sample
+are saved to timestamped CSV/JSON files under `build/net-probe-pc` after the
+connection closes. The PC also supports `dial --host PICO_IPV4` when Pico is
+the listener. See [the PC comparison procedure](docs/remotegame-pc-peer.md)
+for commands, timing definitions and limitations. Local TCP tests and C frame
+compatibility checks pass. The first two physical Pico DIAL → PC LISTEN runs
+also passed (300 samples each, graphics load enabled): RTT min/avg/p50/p95/max
+was 29/56/59/67/82 ms for A and 29/34/33/40/133 ms for B, with no RTT over
+200 ms. Reversing roles reproduced the stalls with B as LISTEN: 16/300 RTTs
+over one second, maximum 1597.139 ms. However, B's report revealed `chunk=1`,
+with transmit phases up to 1556 ms and 43177 writes accepting no data.
+A as LISTEN stayed below 200 ms (maximum 114.420 ms). Repeating B with
+`chunk=32` eliminated empty writes and long transmit phases, but still gave
+two RTTs over one second (maximum 1435.388 ms). B's local handling stayed
+at or below 31 ms; the PC waited before receiving the first response bytes.
+A TCP capture on the PC is the proposed next diagnostic step. The underlying
+cause of these stalls and the earlier Pico-to-Pico stalls remains unresolved.
+
+For a combined packet capture and PC DIAL run, use an Administrator terminal:
+
+```powershell
+python tools/capture_net_probe.py --host 192.168.1.11
+```
+
+Prepare Pico B as LISTEN (`load=1`, `chunk=32`, 8 MHz), then press Enter on the
+PC. The wrapper uses Windows PktMon to filter TCP/6502 traffic between the two
+hosts and saves ETL, PCAPNG and probe reports together under the repository's
+`build/net-probe-pc/<timestamp>-capture`. It refuses existing PktMon sessions
+or filters. Eleven command-mock tests pass. An elevated PktMon check also
+verified start/stop, filter cleanup and PCAPNG conversion without a TCP test.
+The PowerShell launcher `tools/capture_net_probe.ps1` performs that check before
+the real measurement. See the PC procedure above for details.
+The first real capture reproduced a 1356.634 ms RTT, but its packet coverage
+was incomplete. Captures now save PktMon counters, use non-overwriting
+multi-file logs, and audit observed request/reply numbers against the probe
+JSON (`coverage.json`). Missing records do not establish network packet loss
+or retransmission. A second physical capture verified all 300 requests and
+replies plus session termination. Exporting one NIC component gave 661 packets
+with no repeated data segments, but this run had no latency spike (maximum
+73.021 ms). A complete capture containing a slow exchange is still needed.
+That capture was obtained in a later run: 7/300 RTTs exceeded one second
+(maximum 1480.464 ms), with six PC request retransmissions visible on one NIC
+component. One request was TCP-acknowledged within 2.151 ms but its reply arrived
+after 1336.234 ms. The matching Pico report kept local handling at 31 ms or less
+and transmit at 3 ms or less. Firmware queues and the Wi-Fi/AP path still need
+to be distinguished; retransmissions are now observed, not merely suspected.
 
 ## Project layout
 

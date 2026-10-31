@@ -46,9 +46,45 @@ add_custom_command(
         "${SPY_OUT}/host.lbl" "${SPY_OUT}/original.bin" "${SPY_OUT}/title.rp6502" tools/prepare_spy.py tools/rp6502.py
     VERBATIM)
 add_custom_target(spy ALL DEPENDS "${SPY_OUT}/spy-vs-spy.rp6502" "${SPY_OUT}/spy-vs-spy-r16.rp6502")
+# Explicit experiment: never replaces the default/local ROM.
+add_custom_target(remote-clock
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/build_remote_clock.py"
+        --build "${SPY_OUT}" --output "${SPY_OUT}/remote-clock" --ca65 "${CA65}" --ld65 "${LD65}"
+    DEPENDS spy
+    COMMENT "Building the isolated cooperative-clock experiment"
+    VERBATIM)
+find_program(CL65 cl65)
+find_program(SIM65 sim65)
+if(CL65)
+    set(NET_OUT "${SPY_OUT}/net-probe")
+    add_custom_command(
+        OUTPUT "${NET_OUT}/net-probe.rp6502"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${NET_OUT}"
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/build_net_probe.py"
+            --output "${NET_OUT}" --cl65 "${CL65}"
+        DEPENDS src/net-probe/main.c src/net-probe/platform.h src/net-probe/protocol.c
+            src/net-probe/protocol.h src/net-probe/pico.c tools/build_net_probe.py tools/rp6502.py
+        VERBATIM)
+    add_custom_target(net-probe DEPENDS "${NET_OUT}/net-probe.rp6502")
+    if(SIM65)
+        add_custom_target(net-probe-test
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_net_probe.py"
+                --output "${NET_OUT}" --cl65 "${CL65}" --sim65 "${SIM65}"
+            DEPENDS net-probe
+            USES_TERMINAL VERBATIM)
+    endif()
+endif()
 include(CTest)
 option(SPY_TEST_XEX "Also validate extraction against the optional original XEX files" OFF)
 if(BUILD_TESTING)
+    add_test(NAME net-probe-capture-audit
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_probe_capture_audit.py")
+    add_test(NAME net-probe-capture
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_capture_net_probe.py")
+    add_test(NAME net-probe-peer
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_net_probe_peer.py")
+    add_test(NAME determinism-analysis
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_determinism_analysis.py")
     add_test(NAME native-assets
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prepare.py")
     add_test(NAME title-pixels
@@ -68,6 +104,22 @@ if(BUILD_TESTING)
     find_program(SPY_EMULATOR NAMES rp6502-emu rp6502-emu.exe
         HINTS "${CMAKE_CURRENT_SOURCE_DIR}/tools")
     if(SPY_EMULATOR)
+        add_custom_target(remote-clock-test
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_remote_clock.py"
+                "${SPY_OUT}/remote-clock"
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/audit_remote_clock.py"
+                --emulator "${SPY_EMULATOR}" --experiment "${SPY_OUT}/remote-clock"
+            DEPENDS remote-clock
+            COMMENT "Checking shared initialization and numbered logical steps"
+            USES_TERMINAL
+            VERBATIM)
+        add_custom_target(remotegame-audit
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/audit_determinism.py"
+                --emulator "${SPY_EMULATOR}" --build "${SPY_OUT}" --output "${SPY_OUT}/remotegame"
+            DEPENDS spy
+            COMMENT "Auditing R16 determinism and an isolated fixed-seed experiment"
+            USES_TERMINAL
+            VERBATIM)
         add_test(NAME native-title
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_title_native.py"
                 "${SPY_EMULATOR}" "${SPY_OUT}")
