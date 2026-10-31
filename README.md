@@ -4,9 +4,9 @@
 preset: cc65/Release
 publish: spy-vs-spy.zip
 -->
-[![Play Spy vs Spy](https://wojciechgw.github.io/port_spy-vs-spy/spy-vs-spy/screenshot.png)](https://wojciechgw.github.io/port_spy-vs-spy/spy-vs-spy/)
+[![Play Spy vs Spy](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/screenshot.png)](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/)
 
-[Play it in your browser](https://wojciechgw.github.io/port_spy-vs-spy/spy-vs-spy/).
+[Play it in your browser](https://wojciechgw.github.io/port_spy-vs-spy/spyvsspy/).
 
 A native port of the supplied `xex/SpyVsSpy.xex` (Atari XL/XE, HOMESOFT).
 The original game code runs directly on the 6502 CPU. The host layer provides
