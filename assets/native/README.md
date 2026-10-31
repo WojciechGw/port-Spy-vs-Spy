@@ -15,5 +15,5 @@ the manifest and applies the current host patches to copies in the build
 directory. No XEX files, py65, or network access are needed to build the ROM.
 
 To regenerate these inputs from the originals, see the optional extraction
-instructions in the repository's [README](../../README.md#optional-xex-extraction).
+instructions in the repository's [technical documentation](../../docs/INFO.md#optional-xex-extraction).
 The game and its original assets retain their original ownership and licensing.
